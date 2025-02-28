@@ -148,7 +148,7 @@
 //   };
 
 "use client";
-import React, {useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useSelector } from "react-redux";
@@ -158,6 +158,7 @@ import { auth, firestore } from "../../service/firebaseconfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { initializePaddle } from "@paddle/paddle-js";
+import { CheckCircle, XCircle } from "lucide-react";
 
 const PricingPage = () => {
   const userId = useSelector(state => state.user)["userDetail"][0];
@@ -166,27 +167,57 @@ const PricingPage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Define your plans with correct Paddle price IDs
+  // Enhanced plans with more detailed features and clearer distinctions
   const plans = [
     {
-      name: "Free Plan",
-      price: "$0/month",
-      features: ["summarize news 3 times", "0 voice generation", "Limited usage"],
+      name: "Basic",
+      price: "$0",
+      period: "Free forever",
+      description: "Try our core features with limited usage",
+      features: [
+        { text: "3 News Summarizations", included: true },
+        // { text: "Text Summary Output", included: true },
+        { text: "Voice Generation", included: false, limit: "0" },
+        { text: "PDF & Photo Upload", included: true },
+        // { text: "Basic AI Summaries", included: true }
+      ],
       type: "free",
+      isPopular: false,
+      buttonText: "Get Started"
     },
     {
-      name: "Plan 1",
-      price: "$10/month",
-      features: ["summarize news unlimited times", "0 voice generation", "Increased usage limits"],
-      priceId: "pri_01jmsp079tfmrya3q1qjwk74p9", // Replace with your actual Paddle price ID
+      name: "Standard",
+      price: "$10",
+      period: "per month",
+      description: "Perfect for regular news readers",
+      features: [
+        { text: "Unlimited News Summarizations", included: true },
+        // { text: "Advanced AI Summaries", included: true },
+        { text: "Voice Generation", included: false, limit: "0" },
+        // { text: "Priority Processing", included: true },
+        { text: "PDF & Photo Upload", included: true }
+      ],
+      priceId: "pri_01jmsp079tfmrya3q1qjwk74p9",
       type: "plan1",
+      isPopular: true,
+      buttonText: "Subscribe"
     },
     {
-      name: "Plan 2",
-      price: "$20/month",
-      features: ["summarize news unlimited times", "unlimited voice generation", "Higher usage limits"],
-      priceId: "pri_01jmsp1rdbg66swshhwvsk93sx", // Replace with your actual Paddle price ID
+      name: "Premium",
+      price: "$20",
+      period: "per month",
+      description: "Complete access to all features",
+      features: [
+        { text: "Unlimited News Summarizations", included: true },
+        { text: "Unlimited Voice Generation", included: true },
+        { text: "Premium Voice Quality", included: true },
+        // { text: "Priority Processing", included: true },
+        { text: "PDF & Photo Upload", included: true }
+      ],
+      priceId: "pri_01jmsp1rdbg66swshhwvsk93sx",
       type: "plan2",
+      isPopular: false,
+      buttonText: "Subscribe"
     }
   ];
 
@@ -217,20 +248,18 @@ const PricingPage = () => {
     }
   }, [userId]);
 
-  const[paddle,setPaddle]=useState()
-  useEffect(()=>{
+  const [paddle, setPaddle] = useState();
+  useEffect(() => {
     initializePaddle({
-      environment:"sandbox",
-      token:process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
+      environment: "sandbox",
+      token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
       eventCallback: function(data) {
         if (data.name == "checkout.completed") {
           console.log(data);
         }
       }
-    }).then((paddle)=>setPaddle(paddle))
-  },[])
-
-
+    }).then((paddle) => setPaddle(paddle));
+  }, []);
 
   const handleSubscribe = async (priceId, planType) => {
     if (!userId) {
@@ -238,14 +267,17 @@ const PricingPage = () => {
       router.push("/login");
       return;
     }
-    if(!paddle){
-      toast.error("payment gateway has not been initialized")
-      return 
+    
+    if (planType === "free") {
+      return;
+    }
+    
+    if (!paddle) {
+      toast.error("Payment gateway has not been initialized");
+      return;
     }
 
     try {
-      if (planType === "free") return;
-      
       if (planType === userData?.service) {
         toast.info("You're already subscribed to this plan");
         return;
@@ -259,24 +291,11 @@ const PricingPage = () => {
             theme: "dark",
             successUrl: "https://news-backend-motc.onrender.com/success",
         },
-        customData:{
-          userIdFirebase:userId,
-          planType:planType
-        },
-        // eventCallback: function (data) {
-        //     if (data.event === "checkout.failed") {
-        //         console.error("Checkout failed:", data);
-        //         toast.error("payment failed")
-        //         window.location.href = `http://localhost:3000/pricing`;
-        //     }else if (data.event === "checkout.completed") {
-        //     console.log("data")
-        //     console.log("Checkout ID:", data.checkout.id);
-        //     window.location.href = `http://localhost:3000/success?checkout_id=${data.checkout.id}`;
-        // }
-        // }
-    });
-    
-
+        customData: {
+          userIdFirebase: userId,
+          planType: planType
+        }
+      });
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to start checkout process. Please try again.");
@@ -286,53 +305,108 @@ const PricingPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-marker text-xl">Loading subscription details...</p>
+        <p className="text-cyan-400 text-xl">Loading subscription details...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-16 flex flex-col items-center">
-      <h1 className="heading-large text-cyan-400 text-center mb-12">Choose Your Plan</h1>
+      <h1 className="heading-large text-center mb-4">Choose Your <span className="text-cyan-400">Plan</span></h1>
+      <p className="text-body text-center text-gray-400 max-w-2xl mb-12">
+        Select the perfect plan for your news consumption needs. Upgrade anytime as your requirements grow.
+      </p>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
         {plans.map((plan) => (
-          <Card key={plan.name} className="flex flex-col bg-gray-900 border border-gray-700 transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20">
-            <CardHeader>
-              <h2 className="heading-medium text-center">{plan.name}</h2>
-              <p className="text-3xl font-display font-bold text-center text-cyan-400">{plan.price}</p>
+          <Card 
+            key={plan.name} 
+            className={`flex flex-col bg-gray-900 border ${
+              plan.isPopular ? "border-cyan-400" : "border-gray-700"
+            } transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 relative`}
+          >
+            {plan.isPopular && (
+              <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                <span className="bg-cyan-500 text-black text-sm font-bold py-1 px-4 rounded-full">
+                  Recommended
+                </span>
+              </div>
+            )}
+            <CardHeader className="text-center pb-2">
+              <h2 className="heading-medium mb-1">{plan.name}</h2>
+              <div className="flex items-center justify-center mb-2">
+                <span className="text-3xl font-display font-bold text-cyan-400">{plan.price}</span>
+                <span className="text-gray-400 ml-1">{plan.period}</span>
+              </div>
+              <p className="text-sm text-gray-400">{plan.description}</p>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <ul className="space-y-4 text-body">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {feature}
+            <CardContent className="flex-grow pt-4">
+              <ul className="space-y-4">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    {feature.included ? (
+                      <CheckCircle className="w-5 h-5 mr-2 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-5 h-5 mr-2 text-gray-500 flex-shrink-0 mt-0.5" />
+                    )}
+                    <span className={feature.included ? "text-gray-200" : "text-gray-500"}>
+                      {feature.text}
+                      {feature.limit && <span className="block text-sm text-gray-500 ml-7 mt-1">Limit: {feature.limit}</span>}
+                    </span>
                   </li>
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="pt-4">
               <Button
-                className={`w-full font-display border border-gray-700 text-gray-300 rounded-lg transition-all duration-300 ${
+                className={`w-full py-6 font-display text-base rounded-lg transition-all duration-300 ${
                   plan.type === userData?.service
-                    ? "border-cyan-400 text-cyan-400"
-                    : "hover:border-cyan-400 hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20"
+                    ? "bg-cyan-400 text-black hover:bg-cyan-500"
+                    : plan.isPopular
+                    ? "bg-cyan-400 text-black hover:bg-cyan-500"
+                    : "bg-gray-800 border border-gray-700 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
                 }`}
                 onClick={() => handleSubscribe(plan.priceId, plan.type)}
               >
-                {plan.type === userData?.service ? "Current Plan" : "Subscribe"}
+                {plan.type === userData?.service ? "Current Plan" : plan.buttonText}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
       
+      {/* Feature Comparison Table for Mobile */}
+      <div className="md:hidden w-full max-w-6xl mt-12">
+        <h3 className="heading-small text-center mb-6">Compare Features</h3>
+        <div className="bg-gray-900 rounded-lg border border-gray-700 p-4">
+          <table className="w-full">
+            <tbody>
+              <tr className="border-b border-gray-700">
+                <td className="py-3 font-medium">News Summarizations</td>
+                <td className="py-3 text-center">3</td>
+                <td className="py-3 text-center text-cyan-400">∞</td>
+                <td className="py-3 text-center text-cyan-400">∞</td>
+              </tr>
+              <tr className="border-b border-gray-700">
+                <td className="py-3 font-medium">Voice Generation</td>
+                <td className="py-3 text-center">0</td>
+                <td className="py-3 text-center">0</td>
+                <td className="py-3 text-center text-cyan-400">∞</td>
+              </tr>
+              <tr>
+                <td className="py-3 font-medium">Price</td>
+                <td className="py-3 text-center">Free</td>
+                <td className="py-3 text-center">$10/mo</td>
+                <td className="py-3 text-center">$20/mo</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       {/* No Refund Policy Section */}
-      <div className=" w-full max-w-6xl mt-20">
-        <div className="">
+      <div className="w-full max-w-6xl mt-20">
+        <div className="bg-gray-900 rounded-lg border border-gray-700 p-8">
           <h3 className="heading-small text-cyan-400 mb-4 text-center">No Refund Policy</h3>
           <p className="text-body text-gray-300 text-center">
             All purchases are final and non-refundable. By subscribing to any of our paid plans, you acknowledge and agree that we do not provide refunds for any subscription payments made. Please carefully consider your subscription choice before proceeding with payment.
