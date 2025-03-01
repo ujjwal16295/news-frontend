@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
           <AuthListener/>
           <Navbar />
           <SubscriptionNotice/>
-          <Toaster position="top-center" />
+          <Toaster position="bottom-right" />
           <main className="flex-grow">{children}</main>
           <Footer />
         </StoreProvider>

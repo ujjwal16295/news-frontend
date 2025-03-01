@@ -69,6 +69,7 @@ const Navbar = () => {
         {/* Center: Desktop Nav Links */}
         <div className="hidden md:flex md:items-center md:space-x-8 mx-auto">
           <Link href="/" className={getLinkStyles("/")}>Home</Link>
+          <Link href="/whytouse" className={getLinkStyles("/whytouse")}>Why To Use</Link>
           <Link href="/pdfreader" className={getLinkStyles("/pdfreader")}>PDF Reader</Link>
           <Link href="/photoreader" className={getLinkStyles("/photoreader")}>Photo Reader</Link>
           <Link href="/pricing" className={getLinkStyles("/pricing")}>Pricing</Link>
@@ -131,9 +132,11 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-gray-900 text-gray-300 py-2 space-y-2 px-4">
           <Link href="/" className={getMobileLinkStyles("/")}>Home</Link>
+          <Link href="/whytouse" className={getMobileLinkStyles("/whytouse")}>Why To Use</Link>
           <Link href="/pdfreader" className={getMobileLinkStyles("/pdfreader")}>PDF Reader</Link>
           <Link href="/photoreader" className={getMobileLinkStyles("/photoreader")}>Photo Reader</Link>
           <Link href="/pricing" className={getMobileLinkStyles("/pricing")}>Pricing</Link>
+
 
           <div className="border-t border-gray-700 pt-2 mt-2">
             {user ? (

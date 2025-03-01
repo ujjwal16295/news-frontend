@@ -76,6 +76,14 @@ export default function Home() {
           </div>
         </div>
       </div>
+      
+      {/* Why To Use Button */}
+      <div className="mt-16 text-center">
+        <Link href="/whytouse" className="group bg-gray-900 px-8 py-4 rounded-lg border border-gray-700 transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 inline-flex items-center">
+          <span className="font-medium text-lg group-hover:text-cyan-400">Why Use Our Service</span>
+          <ArrowRight className="ml-2 h-5 w-5 group-hover:text-cyan-400" />
+        </Link>
+      </div>
     </div>
   );
 }
