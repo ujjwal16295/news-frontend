@@ -70,9 +70,10 @@ const SubscriptionNotice = () => {
             <div className="flex items-center space-x-2">
               <span className="text-cyan-400">⚠️</span>
               <p className="font-sans text-sm md:text-base">
-                Your subscription will expire in{' '}
+              {daysRemaining<=0? null:"Your subscription will expire in "}
                 <span className="font-display font-bold text-cyan-400">
-                  {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
+                {daysRemaining<=0?"Your plan has been expired" 
+                :  daysRemaining (daysRemaining === 1 ? 'day' : 'days')}
                 </span>
               </p>
               <a
