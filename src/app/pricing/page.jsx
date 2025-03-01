@@ -187,7 +187,7 @@ const PricingPage = () => {
     },
     {
       name: "Standard",
-      price: "$10",
+      price: "$7",
       period: "per month",
       description: "Perfect for regular news readers",
       features: [
@@ -197,14 +197,14 @@ const PricingPage = () => {
         // { text: "Priority Processing", included: true },
         { text: "PDF & Photo Upload", included: true }
       ],
-      priceId: "pri_01jmsp079tfmrya3q1qjwk74p9",
+      priceId: "pri_01jn6wys4z2rs3xt81s9vrs9rx",
       type: "plan1",
       isPopular: true,
       buttonText: "Subscribe"
     },
     {
       name: "Premium",
-      price: "$20",
+      price: "$12",
       period: "per month",
       description: "Complete access to all features",
       features: [
@@ -214,7 +214,7 @@ const PricingPage = () => {
         // { text: "Priority Processing", included: true },
         { text: "PDF & Photo Upload", included: true }
       ],
-      priceId: "pri_01jmsp1rdbg66swshhwvsk93sx",
+      priceId: "pri_01jn6x29zv73egm7t99b9m67j5",
       type: "plan2",
       isPopular: false,
       buttonText: "Subscribe"
@@ -251,7 +251,7 @@ const PricingPage = () => {
   const [paddle, setPaddle] = useState();
   useEffect(() => {
     initializePaddle({
-      environment: "sandbox",
+      environment: "production",
       token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
       eventCallback: function(data) {
         if (data.name == "checkout.completed") {

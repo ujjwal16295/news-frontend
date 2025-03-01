@@ -137,7 +137,8 @@ const TTSPlayer = () => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to generate speech');
+        toast.error(error.error)
+        // throw new Error(error.error || 'Failed to generate speech');
       }
 
       const blob = await response.blob();
