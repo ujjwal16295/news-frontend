@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -79,73 +79,55 @@ const TTSPlayer = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [words, setWords] = useState([]);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [paragraphs, setParagraphs] = useState([]);
+  const [paragraphTimes, setParagraphTimes] = useState([]);
+  const [currentParagraphIndex, setCurrentParagraphIndex] = useState(0);
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
   const audioRef = useRef(null);
-  const wordsRef = useRef([]);
+
   const userId = useSelector(state => state.user)["userDetail"][0];
   const articles = useSelector(state => state.summary)["summary"];
 
   const formatArticlesText = (articles) => {
     return articles.map(article => 
-      `Headlines. ${article.headline}. Summary. ${article.summary}.`
-    ).join(' ');
+      `Headlines. ${article.headline}\n\n${article.summary}`
+    ).join('\n\n');
   };
-
-  useEffect(() => {
-    if(articles.length !== 0) {
-      const formattedText = formatArticlesText(articles);
-      const wordArray = formattedText.split(' ').map((word, index, array) => {
-        let type = 'normal';
-        if (word === 'Headlines.') type = 'marker';
-        else if (word === 'Summary.') type = 'marker';
-        else if (array[index - 1] === 'Headlines.') type = 'headline';
-        else if (array[index - 1] === 'Summary.') type = 'summary';
-        
-        return {
-          word,
-          index,
-          type,
-          start: 0,
-          end: 0
-        };
-      });
-      
-      setWords(wordArray);
-      wordsRef.current = wordArray;
-    }
-  }, [articles]);
 
   const generateSpeech = async () => {
     try {
       setGenerationError(false);
       setIsGenerating(true);
       
+      const formattedText = formatArticlesText(articles);
+      const paragraphList = formattedText.split('\n\n').filter(p => p.trim().length > 0);
+      setParagraphs(paragraphList);
+      // http://localhost:4000/api/generate-speech     
+      //  https://news-backend-motc.onrender.com
       const response = await fetch('https://news-backend-motc.onrender.com/api/generate-speech', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: formatArticlesText(articles),
+          text: formattedText,
           userId: userId
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error)
-        // throw new Error(error.error || 'Failed to generate speech');
+        toast.error(error.error);
+        throw new Error(error.error || 'Failed to generate speech');
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       setCurrentTime(0);
-      setCurrentWordIndex(0);
+      setCurrentParagraphIndex(0);
       setIsPlaying(false);
       setIsAudioReady(true);
       toast.success('Audio ready to play');
@@ -169,24 +151,36 @@ const TTSPlayer = () => {
     }
   }, [articles]);
 
+  // Compute paragraph times when duration changes
+  useEffect(() => {
+    if (duration > 0 && paragraphs.length > 0) {
+      const averageParagraphDuration = duration / paragraphs.length;
+      const times = paragraphs.map((_, index) => index * averageParagraphDuration);
+      setParagraphTimes(times);
+    }
+  }, [duration, paragraphs]);
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-      const wordDuration = duration / words.length;
-      const currentIndex = Math.floor(audioRef.current.currentTime / wordDuration);
-      setCurrentWordIndex(currentIndex);
+      const currentAudioTime = audioRef.current.currentTime;
+      setCurrentTime(currentAudioTime);
+      
+      // More precise paragraph tracking
+      const newParagraphIndex = paragraphTimes.findLastIndex(
+        time => currentAudioTime >= time
+      );
+      
+      if (newParagraphIndex !== -1) {
+        setCurrentParagraphIndex(
+          Math.min(newParagraphIndex, paragraphs.length - 1)
+        );
+      }
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      const wordDuration = audioRef.current.duration / words.length;
-      setWords(words.map((word, index) => ({
-        ...word,
-        start: index * wordDuration,
-        end: (index + 1) * wordDuration
-      })));
     }
   };
 
@@ -195,13 +189,14 @@ const TTSPlayer = () => {
       toast.error('Audio is not ready yet');
       return;
     }
+    
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
         if (currentTime === duration) {
           audioRef.current.currentTime = 0;
-          setCurrentWordIndex(0);
+          setCurrentParagraphIndex(0);
         }
         audioRef.current.play().catch(error => {
           toast.error('Failed to play audio');
@@ -217,50 +212,62 @@ const TTSPlayer = () => {
       const newTime = (value[0] / 100) * duration;
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+      
+      // Update paragraph index when manually seeking
+      const newParagraphIndex = paragraphTimes.findLastIndex(
+        time => newTime >= time
+      );
+      
+      if (newParagraphIndex !== -1) {
+        setCurrentParagraphIndex(
+          Math.min(newParagraphIndex, paragraphs.length - 1)
+        );
+      }
     }
   };
 
   const skipForward = () => {
     if (audioRef.current && isAudioReady) {
-      audioRef.current.currentTime += 5;
+      const newTime = Math.min(audioRef.current.currentTime + 5, duration);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Update paragraph index when skipping
+      const newParagraphIndex = paragraphTimes.findLastIndex(
+        time => newTime >= time
+      );
+      
+      if (newParagraphIndex !== -1) {
+        setCurrentParagraphIndex(
+          Math.min(newParagraphIndex, paragraphs.length - 1)
+        );
+      }
     }
   };
 
   const skipBackward = () => {
     if (audioRef.current && isAudioReady) {
-      audioRef.current.currentTime -= 5;
+      const newTime = Math.max(audioRef.current.currentTime - 5, 0);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Update paragraph index when skipping
+      const newParagraphIndex = paragraphTimes.findLastIndex(
+        time => newTime >= time
+      );
+      
+      if (newParagraphIndex !== -1) {
+        setCurrentParagraphIndex(
+          Math.min(newParagraphIndex, paragraphs.length - 1)
+        );
+      }
     }
   };
 
-  const getVisibleWords = () => {
-    const start = Math.max(0, currentWordIndex - 25);
-    const end = Math.min(words.length, currentWordIndex + 25);
-    return words.slice(start, end);
-  };
-
-  const getWordStyle = (word, isCurrentWord) => {
-    let style = 'inline-block mx-1 font-sans ';
-    
-    if (isCurrentWord) {
-      style += 'bg-cyan-600 text-white px-1 rounded ';
-    }
-    
-    switch (word.type) {
-      case 'marker':
-        style += 'font-display font-semibold text-cyan-400';
-        break;
-      case 'headline':
-        style += 'font-display text-lg text-white';
-        break;
-      case 'summary':
-        style += 'text-body';
-        break;
-      default:
-        style += 'text-body';
-    }
-    
-    return style;
-  };
+  // Memoized current paragraph for performance
+  const currentParagraph = useMemo(() => {
+    return paragraphs[currentParagraphIndex] || 'No text available';
+  }, [paragraphs, currentParagraphIndex]);
 
   if (articles.length === 0) {
     return (
@@ -285,17 +292,12 @@ const TTSPlayer = () => {
           ) : (
             <>
               <div className="mb-6 h-32 overflow-y-auto p-4 bg-gray-800 rounded-lg border border-gray-700">
-                {getVisibleWords().map((word, idx) => (
-                  <span
-                    key={idx}
-                    className={getWordStyle(
-                      word,
-                      idx + Math.max(0, currentWordIndex - 25) === currentWordIndex
-                    )}
-                  >
-                    {word.word}
-                  </span>
-                ))}
+                <p className="text-white">
+                  {currentParagraph}
+                </p>
+                <div className="mt-2 text-sm text-gray-400">
+                  Paragraph {currentParagraphIndex + 1} of {paragraphs.length}
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -353,6 +355,7 @@ const TTSPlayer = () => {
                 onLoadedMetadata={handleLoadedMetadata}
                 onEnded={() => {
                   setIsPlaying(false);
+                  setCurrentParagraphIndex(paragraphs.length - 1);
                   toast.success('Playback completed');
                 }}
                 preload="auto"
