@@ -204,7 +204,7 @@ const PricingPage = () => {
     },
     {
       name: "Premium",
-      price: "$12",
+      price: "$15",
       period: "per month",
       description: "Complete access to all features",
       features: [
