@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import Link from "next/link"
 import { withPrivateRouteProtection } from '@/utils/authProtection'
-import { ArrowLeft, ArrowRight, FileText, Volume2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FileText, Volume2, Home } from 'lucide-react'
 
 const Summary = () => {
   const summary = useSelector(state => state.summary)["summary"]
@@ -21,6 +21,14 @@ const Summary = () => {
           <p className="text-gray-400">
             Your personalized news summary will appear here after processing
           </p>
+          <div className="mt-6">
+            <Link href="/">
+              <button className="flex items-center gap-2 px-6 py-3 bg-gray-800/60 backdrop-blur-lg rounded-lg border border-gray-700/50 text-cyan-300 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 mx-auto">
+                <Home size={20} />
+                Back to Home
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     )
