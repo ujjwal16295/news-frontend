@@ -5,9 +5,14 @@ import Link from "next/link"
 import { withPrivateRouteProtection } from '@/utils/authProtection'
 import { ArrowLeft, ArrowRight, FileText, Volume2, Home } from 'lucide-react'
 
+
+
+
 const Summary = () => {
   const summary = useSelector(state => state.summary)["summary"]
   const [currentPage, setCurrentPage] = useState(1)
+  const service = useSelector(state => state.user)["userDetail"][3];
+
   const itemsPerPage = 5
 
   if (summary.length === 0) {
@@ -113,8 +118,8 @@ const Summary = () => {
       </div>
 
       <div className="mt-8 flex space-x-4">
-        <Link href="/voicesummary">
-          <button className="flex items-center gap-2 px-6 py-3 bg-gray-800/60 backdrop-blur-lg rounded-lg border border-gray-700/50 text-cyan-300 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20">
+      <Link href={service !== "plan2" ? "/freevoicesummary" : "/voicesummary"}>
+                <button className="flex items-center gap-2 px-6 py-3 bg-gray-800/60 backdrop-blur-lg rounded-lg border border-gray-700/50 text-cyan-300 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20">
             <Volume2 size={20} />
             Voice Summary
           </button>

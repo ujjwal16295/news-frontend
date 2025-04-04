@@ -8,7 +8,8 @@ const protectedRoutes = [
   '/settings',
   "/success",
   "/summary",
-  "/voicesummary"
+  "/voicesummary",
+  "/freevoicesummary"
 ];
 
 // Public routes that authenticated users shouldn't see

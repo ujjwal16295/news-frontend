@@ -158,7 +158,7 @@ import { auth, firestore } from "../../service/firebaseconfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { initializePaddle } from "@paddle/paddle-js";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 const PricingPage = () => {
   const userId = useSelector(state => state.user)["userDetail"][0];
@@ -166,6 +166,9 @@ const PricingPage = () => {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Set this to true when the Premium plan is ready to launch
+  const isPremiumAvailable = false;
 
   // Enhanced plans with more detailed features and clearer distinctions
   const plans = [
@@ -177,9 +180,9 @@ const PricingPage = () => {
       features: [
         { text: "3 News Summarizations", included: true },
         // { text: "Text Summary Output", included: true },
-        { text: "Voice Generation", included: false, limit: "0" },
+        { text: "Voice Generation", included: true, limit: "3" },
         { text: "PDF & Photo Upload", included: true },
-        // { text: "Basic AI Summaries", included: true }
+        // { text: "B", included: true }
       ],
       type: "free",
       isPopular: false,
@@ -193,7 +196,8 @@ const PricingPage = () => {
       features: [
         { text: "Unlimited News Summarizations", included: true },
         // { text: "Advanced AI Summaries", included: true },
-        { text: "Voice Generation", included: false, limit: "0" },
+        { text: "Unlimited Voice Generation", included: true },
+        { text: "Basic Voice Quality", included: true },
         // { text: "Priority Processing", included: true },
         { text: "PDF & Photo Upload", included: true }
       ],
@@ -217,7 +221,8 @@ const PricingPage = () => {
       priceId: "pri_01jn6x29zv73egm7t99b9m67j5",
       type: "plan2",
       isPopular: false,
-      buttonText: "Subscribe"
+      buttonText: isPremiumAvailable ? "Subscribe" : "Coming Soon",
+      comingSoon: !isPremiumAvailable
     }
   ];
 
@@ -262,6 +267,11 @@ const PricingPage = () => {
   }, []);
 
   const handleSubscribe = async (priceId, planType) => {
+    if (planType === "plan2" && !isPremiumAvailable) {
+      toast.info("Premium plan is coming soon! Stay tuned for updates.");
+      return;
+    }
+    
     if (!userId) {
       toast.error("Please login to subscribe to a plan");
       router.push("/login");
@@ -287,9 +297,9 @@ const PricingPage = () => {
       paddle.Checkout.open({
         items: [{ priceId: priceId, quantity: 1 }],
         settings: {
-            displayMode: "overlay",
-            theme: "dark",
-            successUrl: "https://news-backend-motc.onrender.com/success",
+          displayMode: "overlay",
+          theme: "dark",
+          successUrl: "https://news-backend-motc.onrender.com/success",
         },
         customData: {
           userIdFirebase: userId,
@@ -318,61 +328,87 @@ const PricingPage = () => {
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
-        {plans.map((plan) => (
-          <Card 
-            key={plan.name} 
-            className={`flex flex-col bg-gray-900 border ${
-              plan.isPopular ? "border-cyan-400" : "border-gray-700"
-            } transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 relative`}
-          >
-            {plan.isPopular && (
-              <div className="absolute -top-4 left-0 right-0 flex justify-center">
-                <span className="bg-cyan-500 text-black text-sm font-bold py-1 px-4 rounded-full">
-                  Recommended
-                </span>
-              </div>
-            )}
-            <CardHeader className="text-center pb-2">
-              <h2 className="heading-medium mb-1">{plan.name}</h2>
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-3xl font-display font-bold text-cyan-400">{plan.price}</span>
-                <span className="text-gray-400 ml-1">{plan.period}</span>
-              </div>
-              <p className="text-sm text-gray-400">{plan.description}</p>
-            </CardHeader>
-            <CardContent className="flex-grow pt-4">
-              <ul className="space-y-4">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    {feature.included ? (
-                      <CheckCircle className="w-5 h-5 mr-2 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <XCircle className="w-5 h-5 mr-2 text-gray-500 flex-shrink-0 mt-0.5" />
-                    )}
-                    <span className={feature.included ? "text-gray-200" : "text-gray-500"}>
-                      {feature.text}
-                      {feature.limit && <span className="block text-sm text-gray-500 ml-7 mt-1">Limit: {feature.limit}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter className="pt-4">
-              <Button
-                className={`w-full py-6 font-display text-base rounded-lg transition-all duration-300 ${
-                  plan.type === userData?.service
-                    ? "bg-cyan-400 text-black hover:bg-cyan-500"
-                    : plan.isPopular
-                    ? "bg-cyan-400 text-black hover:bg-cyan-500"
-                    : "bg-gray-800 border border-gray-700 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
-                }`}
-                onClick={() => handleSubscribe(plan.priceId, plan.type)}
-              >
-                {plan.type === userData?.service ? "Current Plan" : plan.buttonText}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {plans.map((plan) => {
+          const isComingSoon = plan.type === "plan2" && !isPremiumAvailable;
+          const isPremium = plan.type === "plan2";
+          const isCurrentPlan = plan.type === userData?.service;
+          
+          return (
+            <Card 
+              key={plan.name} 
+              className={`flex flex-col bg-gray-900 border ${
+                plan.isPopular ? "border-cyan-400" : isComingSoon ? "border-yellow-500" : "border-gray-700"
+              } transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 relative`}
+            >
+              {plan.isPopular && (
+                <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                  <span className="bg-cyan-500 text-black text-sm font-bold py-1 px-4 rounded-full">
+                    Recommended
+                  </span>
+                </div>
+              )}
+              {isComingSoon && (
+                <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                  <span className="bg-yellow-500 text-black text-sm font-bold py-1 px-4 rounded-full flex items-center">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Coming Soon
+                  </span>
+                </div>
+              )}
+              <CardHeader className="text-center pb-2">
+                <h2 className="heading-medium mb-1">{plan.name}</h2>
+                <div className="flex items-center justify-center mb-2">
+                  <span className={`text-3xl font-display font-bold ${isComingSoon ? "text-yellow-400" : "text-cyan-400"}`}>{plan.price}</span>
+                  <span className="text-gray-400 ml-1">{plan.period}</span>
+                </div>
+                <p className="text-sm text-gray-400">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="flex-grow pt-4">
+                <ul className="space-y-4">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-start">
+                      {feature.included ? (
+                        isComingSoon ? 
+                        <Clock className="w-5 h-5 mr-2 text-yellow-400 flex-shrink-0 mt-0.5" /> :
+                        <CheckCircle className="w-5 h-5 mr-2 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-5 h-5 mr-2 text-gray-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className={feature.included ? "text-gray-200" : "text-gray-500"}>
+                        {feature.text}
+                        {feature.limit && <span className="block text-sm text-gray-500 ml-7 mt-1">Limit: {feature.limit}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter className="pt-4">
+                <Button
+                  className={`w-full py-6 font-display text-base rounded-lg transition-all duration-300 ${
+                    isComingSoon
+                      ? "bg-yellow-400 text-black hover:bg-yellow-500 cursor-not-allowed"
+                      : isCurrentPlan
+                      ? "bg-cyan-400 text-black hover:bg-cyan-500"
+                      : plan.isPopular
+                      ? "bg-cyan-400 text-black hover:bg-cyan-500"
+                      : "bg-gray-800 border border-gray-700 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
+                  }`}
+                  onClick={() => handleSubscribe(plan.priceId, plan.type)}
+                  disabled={isComingSoon}
+                >
+                  {isComingSoon 
+                    ? "Coming Soon" 
+                    : isCurrentPlan 
+                    ? "Current Plan" 
+                    : plan.buttonText}
+                </Button>
+                {isComingSoon && (
+                  <p className="text-xs text-yellow-400 mt-2 text-center">Premium features are currently in development</p>
+                )}
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
       
       {/* Feature Comparison Table for Mobile */}
@@ -385,22 +421,23 @@ const PricingPage = () => {
                 <td className="py-3 font-medium">News Summarizations</td>
                 <td className="py-3 text-center">3</td>
                 <td className="py-3 text-center text-cyan-400">∞</td>
-                <td className="py-3 text-center text-cyan-400">∞</td>
+                <td className="py-3 text-center text-cyan-400">{!isPremiumAvailable && <span className="text-yellow-400">∞*</span>}</td>
               </tr>
               <tr className="border-b border-gray-700">
                 <td className="py-3 font-medium">Voice Generation</td>
-                <td className="py-3 text-center">0</td>
-                <td className="py-3 text-center">0</td>
+                <td className="py-3 text-center">3</td>
                 <td className="py-3 text-center text-cyan-400">∞</td>
+                <td className="py-3 text-center text-cyan-400">{!isPremiumAvailable && <span className="text-yellow-400">∞*</span>}</td>
               </tr>
               <tr>
                 <td className="py-3 font-medium">Price</td>
                 <td className="py-3 text-center">Free</td>
-                <td className="py-3 text-center">$10/mo</td>
-                <td className="py-3 text-center">$20/mo</td>
+                <td className="py-3 text-center">$7/mo</td>
+                <td className="py-3 text-center">{!isPremiumAvailable ? <span className="text-yellow-400">$15/mo*</span> : "$15/mo"}</td>
               </tr>
             </tbody>
           </table>
+          {!isPremiumAvailable && <p className="text-xs text-yellow-400 mt-2 text-right">*Coming soon</p>}
         </div>
       </div>
       
